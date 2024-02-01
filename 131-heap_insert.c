@@ -1,103 +1,95 @@
+#include <stdlib.h>
 #include "binary_trees.h"
-size_t bts(const binary_tree_t *tree);
-heap_t *heap_nf(heap_t *root, size_t number);
-heap_t *heap_r(heap_t *new, heap_t *parent);
+
+int node_count(const heap_t *tree);
+heap_t *ins_max_heap(heap_t *node, heap_t *new_node, int index,
+					 int new_node_index);
+heap_t *bottom_up_heapify(heap_t *node);
 
 /**
- * heap_insert - heap inserter
- *
- * @tree: double pointer to root
- * @value: the value to store
- * Return: pointer to the created node
+ * heap_insert - Inserts a value into a Max Binary Heap
+ * @root: Double pointer to the root node of the Heap to insert the value
+ * @value: Value to store in the node to be inserted
+ * Return: Pointer to the created node, or NULL on failure
  */
-heap_t *heap_insert(heap_t **tree, int value)
+heap_t *heap_insert(heap_t **root, int value)
 {
-	size_t size;
-	int doswap = 1;
-	heap_t *new, *parent;
+	int size;
+	heap_t *new_node = NULL;
 
-	if (tree == NULL)
+	if (!root)
 		return (NULL);
 
-	if (*tree == NULL)
-	{
-		new = binary_tree_node(NULL, value);
-		*tree = new;
-		return (new);
-	}
-
-	size = bts(*tree);
-	parent = heap_nf(*tree, (size - 1) / 2);
-	new = binary_tree_node(parent, value);
-	if (size % 2 == 1)
-		parent->left = new;
-	else
-		parent->right = new;
-	if (new == NULL)
+	new_node = binary_tree_node(NULL, value);
+	if (!new_node)
 		return (NULL);
 
-	while (doswap == 1 && parent != NULL)
-	{
-		if (parent->n >= new->n)
-			doswap = 0;
-		else
-		{
-			new = heap_r(new, parent);
-			parent = new->parent;
-		}
-	}
+	size = node_count(*root) + 1;
+	*root = ins_max_heap(*root, new_node, 0, size - 1);
 
-	return (new);
+	return (bottom_up_heapify(new_node));
 }
 
 /**
- * bts - measure the tree
- *
- * @tree: pointer to root
- * Return: size, otherwise 0
+ * node_count - Counts the total number of nodes in a binary tree
+ * @tree: Pointer to the root node of the tree to count the number of nodes
+ * Return: Number of nodes in the tree
  */
-
-size_t bts(const binary_tree_t *tree)
+int node_count(const heap_t *tree)
 {
-	if (tree == NULL)
+	if (!tree)
 		return (0);
-	return (1 + bts(tree->left) + bts(tree->right));
+	return (1 + node_count(tree->left) + node_count(tree->right));
 }
 
 /**
- * heap_nf - heap node finder
+ * ins_max_heap - Inserts a value into a Max Binary Heap
+ * @node: Pointer to the root node of the Heap to insert the value
+ * @new_node: Value to store in the node to be inserted
+ * @index: Index of current node
+ * @new_node_index: Index of new node
+ * Return: Pointer to the created node, or NULL on failure
+ */
+heap_t *ins_max_heap(heap_t *node, heap_t *new_node,
+					 int index, int new_node_index)
+{
+	if (index > new_node_index)
+		return (NULL);
+	if (index == new_node_index)
+		return (new_node);
+
+	node->left = ins_max_heap(node->left, new_node,
+							  index * 2 + 1, new_node_index);
+	if (node->left)
+		node->left->parent = node;
+
+	node->right = ins_max_heap(node->right, new_node,
+							   index * 2 + 2, new_node_index);
+	if (node->right)
+		node->right->parent = node;
+
+	return (node);
+}
+
+/**
+ * bottom_up_heapify - Heapifies a Max Binary Heap bottom-up
+ * Description: This function swaps the value of a node with the value of its
+ * parent while the value of the node is greater than the value of its parent.
  *
- * @root: pointer to the root
- * @number: index of the node to find
- * Return: pointer to the node
+ * @node: Pointer to the root node of the Heap to heapify
+ * Return: Pointer to the root node of the Heap
  */
-heap_t *heap_nf(heap_t *root, size_t number)
+heap_t *bottom_up_heapify(heap_t *node)
 {
-	size_t parentn, dir;
+	heap_t *temp = node;
+	int temp_n;
 
-	if (number == 0)
-		return (root);
-
-	parentn = (number - 1) / 2;
-	dir = (number - 1) % 2;
-
-	if (dir == 0)
-		return (heap_nf(root, parentn)->left);
-	return (heap_nf(root, parentn)->right);
-}
-
-/**
- * heap_r - heap rebalancer
- * @new: pointer to the new node
- * @parent: pointer to the new parent
- * Return: parent
- */
-heap_t *heap_r(heap_t *new, heap_t *parent)
-{
-	int tmp;
-
-	tmp = new->n;
-	new->n = parent->n;
-	parent->n = tmp;
-	return (parent);
+	while (temp->parent && temp->n > temp->parent->n)
+	{
+		temp_n = temp->n;
+		temp->n = temp->parent->n;
+		temp->parent->n = temp_n;
+		temp = temp->parent;
+	}
+	return (temp);
 }
